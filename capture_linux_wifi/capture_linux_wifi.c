@@ -876,8 +876,8 @@ int probe_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition
     }
 
     if ((placeholder_len = cf_find_flag(&placeholder, "max_packet_len", definition)) > 0) {
-    	r = sscanf(placeholder, "%u", &local_wifi->max_packet_len);
-	if (r != 1 || local_wifi->max_packet_len <= 0 || local_wifi->max_packet_len > 262144) {
+    	sscanf(placeholder, "%u", &local_wifi->max_packet_len);
+	if (local_wifi->max_packet_len <= 0 || local_wifi->max_packet_len > 262144) {
         	snprintf(msg, STATUS_MAX, "Invalid maximum packet length"); 
         	free(interface);
         	return 0;
