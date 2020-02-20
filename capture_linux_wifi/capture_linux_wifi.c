@@ -93,8 +93,6 @@
 
 #include "../wifi_ht_channels.h"
 
-#define MAX_PACKET_LEN  8192
-
 /* State tracking, put in userdata */
 typedef struct {
     pcap_t *pd;
@@ -146,6 +144,8 @@ typedef struct {
     unsigned long channel_set_ns_avg;
     unsigned int channel_set_ns_count;
 
+    /* PCAP capture length */
+    unsigned int max_packet_len;
 } local_wifi_t;
 
 /* Linux Wi-Fi Channels:
@@ -873,6 +873,15 @@ int probe_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition
     if (ifconfig_get_hwaddr(interface, errstr, hwaddr) < 0) {
         free(interface);
         return 0;
+    }
+
+    if ((placeholder_len = cf_find_flag(&placeholder, "max_packet_len", definition)) > 0) {
+    	r = sscanf(placeholder, "%u", &local_wifi->max_packet_len);
+	if (r != 1 || local_wifi->max_packet_len <= 0 || local_wifi->max_packet_len > 262144) {
+        	snprintf(msg, STATUS_MAX, "Invalid maximum packet length"); 
+        	free(interface);
+        	return 0;
+	}
     }
 
     /* Do we exclude HT or VHT channels?  Equally, do we force them to be turned on? */
@@ -2016,7 +2025,7 @@ int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
 
     /* Open the pcap */
     local_wifi->pd = pcap_open_live(local_wifi->cap_interface, 
-            MAX_PACKET_LEN, 1, 1000, pcap_errstr);
+            local_wifi->max_packet_len, 1, 1000, pcap_errstr);
 
     if (local_wifi->pd == NULL || strlen(pcap_errstr) != 0) {
         snprintf(msg, STATUS_MAX, "%s could not open capture interface '%s' on '%s' "
@@ -2376,6 +2385,7 @@ int main(int argc, char *argv[]) {
         .verbose_statistics = 0,
         .channel_set_ns_avg = 0,
         .channel_set_ns_count = 0,
+	.max_packet_len = 8192,
     };
 
 #ifdef HAVE_LIBNM
